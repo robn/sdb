@@ -18,10 +18,12 @@
 # pylint: disable=missing-docstring
 
 import argparse
+import textwrap
 from typing import Iterable, List, Optional
 
 import drgn
 import sdb
+from sdb.commands.internal.table import Table
 from sdb.commands.zfs.internal import gethrtime, removeprefix, NANOSEC, MSEC
 
 
@@ -66,40 +68,90 @@ class Zio(sdb.Locator, sdb.PrettyPrinter):
         parser.add_argument("-r", "--recursive", action='store_true')
         parser.add_argument("-c", "--children", action='store_true')
         parser.add_argument("-p", "--parents", action='store_true')
+        parser.add_argument('-o',
+                            metavar="FIELDS",
+                            help='comma-separated list of fields to display')
+        parser.add_argument('-v',
+                            action='store_true',
+                            help='Print all statistics')
+
+        #
+        # We change the formatter so we can add newlines in the epilog.
+        #
+        parser.formatter_class = argparse.RawDescriptionHelpFormatter
+        parser.epilog = textwrap.fill(
+            f"FIELDS := {', '.join(Zio.FIELDS.keys())}\n",
+            width=80,
+            replace_whitespace=False)
+        parser.epilog += "\n\n"
+        parser.epilog += textwrap.fill(
+            ("If -o is not specified the default fields used are "
+             f"{', '.join(Zio.DEFAULT_FIELDS)}.\n"),
+            width=80,
+            replace_whitespace=False)
         return parser
+
+    def __pp_fmt_addr(obj):
+        return hex(obj.value_())
+    def __pp_fmt_addr_null(obj):
+        if sdb.is_null(obj):
+            return "-"
+        return hex(obj.value_())
+
+    def __pp_fmt_enum(obj, prefix):
+        return removeprefix(obj.format_(type_name=False), prefix)
+
+    def __pp_fmt_delta(zio):
+        if zio.io_timestamp == 0:
+            return "-"
+        delta_ms = (gethrtime() - int(zio.io_timestamp)) / (NANOSEC / MSEC)
+        return f"{str(int(delta_ms))}ms"
+
+    FIELDS = {
+        "address": __pp_fmt_addr,
+        "type": lambda zio: Zio.__pp_fmt_enum(zio.io_type, "ZIO_TYPE_"),
+        "stage": lambda zio: Zio.__pp_fmt_enum(zio.io_stage, "ZIO_STAGE_"),
+        "waiter": lambda zio: Zio.__pp_fmt_addr_null(zio.io_waiter),
+        "delta": __pp_fmt_delta,
+    }
+    DEFAULT_FIELDS = [
+        "address",
+        "type",
+        "stage",
+        "waiter",
+        "delta",
+    ]
+
+    def __pp_parse_args(self) -> List[str]:
+        fields = Zio.DEFAULT_FIELDS
+        if self.args.o:
+            fields = self.args.o.split(",")
+        elif self.args.v:
+            fields = list(Zio.FIELDS.keys())
+
+        for field in fields:
+            if field not in Zio.FIELDS:
+                raise sdb.CommandError(self.name,
+                                       f"'{field}' is not a valid field")
+
+        return fields
 
     def __init__(self,
                  args: Optional[List[str]] = None,
                  name: str = "_") -> None:
         super().__init__(args, name)
         self.level = 0
-        self.header_printed = 0
-
-    def print_header(self) -> None:
-        if self.header_printed == 0:
-            print(f'\033[4m{"ADDRESS":30} {"TYPE":<5} {"STAGE":<16} ' +
-                  f'{"WAITER":<18} {"TIME_ELAPSED":>12}\033[0m')
-            self.header_printed = 1
 
     def pretty_print(self, objs: Iterable[drgn.Object]) -> None:
-        self.print_header()
-        for zio in objs:
-            delta = waiter = "-"
-            stage = removeprefix(zio.io_stage.format_(type_name=False),
-                                 "ZIO_STAGE_")
-            if zio.io_error != 0:
-                stage = "FAILED"
-            io_type = removeprefix(zio.io_type.format_(type_name=False),
-                                   "ZIO_TYPE_")
-            addr = f'{" " * self.level}{format(hex(zio))}'
-            if not sdb.is_null(zio.io_waiter):
-                waiter = hex(int(zio.io_waiter))
-            if zio.io_timestamp != 0:
-                delta_ms = (gethrtime() - int(zio.io_timestamp)) / (NANOSEC /
-                                                                    MSEC)
-                delta = f"{str(int(delta_ms))}ms"
-            print(
-                f"{addr:30} {io_type:<5} {stage:<16} {waiter:<18} {delta:>12}")
+        fields = self.__pp_parse_args()
+        table = Table(fields, None, {})
+        for obj in objs:
+            row_dict = {
+                field: Zio.FIELDS[field](obj) for field in set(fields) - {"address"}
+            }
+            row_dict["address"] = f'{" " * self.level}{Zio.FIELDS["address"](obj)}'
+            table.add_row("address", row_dict)
+        table.print_(print_headers=True)
 
     @sdb.InputHandler("zio_t*")
     def from_zio(self, zio: drgn.Object) -> Iterable[drgn.Object]:
