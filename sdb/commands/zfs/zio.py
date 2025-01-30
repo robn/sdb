@@ -101,11 +101,45 @@ class Zio(sdb.Locator, sdb.PrettyPrinter):
     def __pp_fmt_enum(obj, prefix):
         return removeprefix(obj.format_(type_name=False), prefix)
 
+#    def __pp_fmt_enum_bits(obj):
+#        v = obj.value_()
+#        ty = sdb.get_type(sdb.type_canonical_name(obj.type_))
+#        bits = []
+#        for name, bit in ty.enumerators:
+#            if v & (1 << bit):
+#                bits.append(name)
+#        return f"{'|'.join(bits)}"
+
+    def __pp_fmt_flags(obj, names: List[str]):
+        v = obj.value_()
+        bits = []
+
+        bit = 0
+        bitv = 1
+        while bitv <= v:
+            if v & bitv:
+                bits.append(names[bit])
+            bit += 1
+            bitv = 1 << bit
+        return f"{'|'.join(bits)}"
+
     def __pp_fmt_delta(zio):
         if zio.io_timestamp == 0:
             return "-"
         delta_ms = (gethrtime() - int(zio.io_timestamp)) / (NANOSEC / MSEC)
         return f"{str(int(delta_ms))}ms"
+
+    _flag_names = [
+        "DONT_AGGREGATE",  "IO_REPAIR",       "SELF_HEAL",      "RESILVER",
+        "SCRUB",           "SCAN_THREAD",     "PHYSICAL",       "CANFAIL",
+        "SPECULATIVE",     "CONFIG_WRITER",   "DONT_RETRY",     "[UNKNOWN 11]",
+        "NODATA",          "INDUCE_DAMAGE",   "IO_ALLOCATING",  "IO_RETRY",
+        "PROBE",           "TRYHARD",         "OPTIONAL",       "DIO_READ",
+        "DONT_QUEUE",      "DONT_PROPAGATE",  "IO_BYPASS",      "IO_REWRITE",
+        "RAW_COMPRESS",    "RAW_ENCRYPT",     "GANG_CHILD",     "DDT_CHILD",
+        "GODFATHER",       "NOPWRITE",        "REEXECUTED",     "DELEGATED",
+        "DIO_CHKSUM_ERR",
+    ]
 
     FIELDS = {
         "address": __pp_fmt_addr,
@@ -113,6 +147,7 @@ class Zio(sdb.Locator, sdb.PrettyPrinter):
         "stage": lambda zio: Zio.__pp_fmt_enum(zio.io_stage, "ZIO_STAGE_"),
         "waiter": lambda zio: Zio.__pp_fmt_addr_null(zio.io_waiter),
         "delta": __pp_fmt_delta,
+        "flags": lambda zio: Zio.__pp_fmt_flags(zio.io_flags, Zio._flag_names),
     }
     DEFAULT_FIELDS = [
         "address",
