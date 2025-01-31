@@ -189,12 +189,16 @@ class Zio(sdb.Locator, sdb.PrettyPrinter):
         super().__init__(args, name)
         self.level = 0
 
+    def __removeopt(field):
+        p = field.find("=")
+        return field[:p] if p >= 0 else field
+
     def pretty_print(self, objs: Iterable[drgn.Object]) -> None:
         fields = self.__pp_parse_args()
-        table = Table(fields, None, {})
+        table = Table([Zio.__removeopt(field) for field in fields], None, {})
         for obj in objs:
             row_dict = {
-                field: Zio.FIELDS[field](obj) for field in set(fields) - {"address"}
+                Zio.__removeopt(field): Zio.FIELDS[field](obj) for field in set(fields) - {"address"}
             }
             row_dict["address"] = f'{" " * self.level}{Zio.FIELDS["address"](obj)}'
             table.add_row("address", row_dict)
