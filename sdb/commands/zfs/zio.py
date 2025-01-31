@@ -140,6 +140,13 @@ class Zio(sdb.Locator, sdb.PrettyPrinter):
         "GODFATHER",       "NOPWRITE",        "REEXECUTED",     "DELEGATED",
         "DIO_CHKSUM_ERR",
     ]
+    _flag_names_short = [
+        "DA", "RP", "SH", "RS", "SC", "ST", "PH", "CF",
+        "SP", "CW", "DR", "??", "ND", "ID", "AL", "RE",
+        "PR", "TH", "OP", "RD", "DQ", "DP", "BY", "RW",
+        "CM", "EN", "GG", "DD", "GF", "NP", "EX", "DG",
+        "DC",
+    ]
 
     FIELDS = {
         "address": __pp_fmt_addr,
@@ -147,8 +154,13 @@ class Zio(sdb.Locator, sdb.PrettyPrinter):
         "stage": lambda zio: Zio.__pp_fmt_enum(zio.io_stage, "ZIO_STAGE_"),
         "waiter": lambda zio: Zio.__pp_fmt_addr_null(zio.io_waiter),
         "delta": __pp_fmt_delta,
-        "flags": lambda zio: Zio.__pp_fmt_flags(zio.io_flags, Zio._flag_names),
+
+        "flags=long": lambda zio: Zio.__pp_fmt_flags(zio.io_flags, Zio._flag_names),
+        "flags=short": lambda zio: Zio.__pp_fmt_flags(zio.io_flags, Zio._flag_names_short),
     }
+
+    FIELDS["flags"] = FIELDS["flags=long"]
+
     DEFAULT_FIELDS = [
         "address",
         "type",
