@@ -207,22 +207,21 @@ class Zio(sdb.Locator, sdb.PrettyPrinter):
     @sdb.InputHandler("zio_t*")
     def from_zio(self, zio: drgn.Object) -> Iterable[drgn.Object]:
         yield zio
-
         self.level += 1
-        if self.args.recursive or self.args.children:
-            child_links = sdb.execute_pipeline(
-                [zio.io_child_list.address_of_()],
-                [sdb.Walk(), sdb.Cast(["zio_link_t *"])],
-            )
-            for c in child_links:
-                yield from self.from_zio(c.zl_child)
-        elif self.args.parents:
-            child_links = sdb.execute_pipeline(
-                [zio.io_parent_list.address_of_()],
-                [sdb.Walk(), sdb.Cast(["zio_link_t *"])],
-            )
-            for c in child_links:
-                yield from self.from_zio(c.zl_parent)
+        if self.level < 2 or self.args.recursive:
+            zios = []
+            if self.args.children:
+                zios = [zl.zl_child for zl in sdb.execute_pipeline(
+                    [zio.io_child_list.address_of_()],
+                    [sdb.Walk(), sdb.Cast(["zio_link_t *"])],
+                )]
+            elif self.args.parents:
+                zios = [zl.zl_parent for zl in sdb.execute_pipeline(
+                    [zio.io_parent_list.address_of_()],
+                    [sdb.Walk(), sdb.Cast(["zio_link_t *"])],
+                )]
+            for zio in zios:
+                yield from self.from_zio(zio)
         self.level -= 1
 
     @staticmethod
