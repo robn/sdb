@@ -65,6 +65,7 @@ class Zio(sdb.Locator, sdb.PrettyPrinter):
     @classmethod
     def _init_parser(cls, name: str) -> argparse.ArgumentParser:
         parser = super()._init_parser(name)
+        parser.add_argument("-z", "--graphviz", action='store_true')
         parser.add_argument("-r", "--recursive", action='store_true')
         parser.add_argument("-c", "--children", action='store_true')
         parser.add_argument("-p", "--parents", action='store_true')
@@ -188,12 +189,27 @@ class Zio(sdb.Locator, sdb.PrettyPrinter):
                  name: str = "_") -> None:
         super().__init__(args, name)
         self.level = 0
+        self.seen = []
 
     def __removeopt(field):
         p = field.find("=")
         return field[:p] if p >= 0 else field
 
-    def pretty_print(self, objs: Iterable[drgn.Object]) -> None:
+    def _graphviz_print(self, objs: Iterable[drgn.Object]) -> None:
+        print(
+            "strict digraph {\n"
+            "rankdir=\"BT\"")
+
+        last = []
+        for obj in objs:
+            id = Zio.__pp_fmt_addr(obj)
+            if not id in self.seen:
+                self.seen.append(id)
+                print(f'"{id}" [label="{Zio.FIELDS["type"](obj)}\\l{Zio.FIELDS["flags=short"](obj)}"]')
+
+        print("}\n")
+
+    def _pretty_print(self, objs: Iterable[drgn.Object]) -> None:
         fields = self.__pp_parse_args()
         table = Table([Zio.__removeopt(field) for field in fields], None, {})
         for obj in objs:
@@ -203,6 +219,11 @@ class Zio(sdb.Locator, sdb.PrettyPrinter):
             row_dict["address"] = f'{" " * self.level}{Zio.FIELDS["address"](obj)}'
             table.add_row("address", row_dict)
         table.print_(print_headers=True)
+
+    def pretty_print(self, objs: Iterable[drgn.Object]) -> None:
+        if self.args.graphviz:
+            return self._graphviz_print(objs)
+        return self._pretty_print(objs)
 
     @sdb.InputHandler("zio_t*")
     def from_zio(self, zio: drgn.Object) -> Iterable[drgn.Object]:
