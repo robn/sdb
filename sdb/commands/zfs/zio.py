@@ -149,6 +149,8 @@ class Zio(sdb.Locator, sdb.PrettyPrinter):
         "DC",
     ]
 
+    _post_names = [ "REEXECUTE", "SUSPEND", "DIO_CHKSUM_ERR" ]
+
     FIELDS = {
         "address": __pp_fmt_addr,
         "type": lambda zio: Zio.__pp_fmt_enum(zio.io_type, "ZIO_TYPE_"),
@@ -158,6 +160,10 @@ class Zio(sdb.Locator, sdb.PrettyPrinter):
 
         "flags=long": lambda zio: Zio.__pp_fmt_flags(zio.io_flags, Zio._flag_names),
         "flags=short": lambda zio: Zio.__pp_fmt_flags(zio.io_flags, Zio._flag_names_short),
+
+        "child_type": lambda zio: Zio.__pp_fmt_enum(zio.io_child_type, "ZIO_CHILD_"),
+
+        "post": lambda zio: Zio.__pp_fmt_flags(zio.io_post, Zio._post_names),
     }
 
     FIELDS["flags"] = FIELDS["flags=long"]
