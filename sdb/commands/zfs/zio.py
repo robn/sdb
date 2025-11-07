@@ -164,10 +164,9 @@ class Zio(sdb.Locator, sdb.PrettyPrinter):
 
     FIELDS = {
         "address": __pp_fmt_addr,
+
         "type": lambda zio: Zio.__pp_fmt_enum(zio.io_type, "ZIO_TYPE_"),
         "stage": lambda zio: Zio.__pp_fmt_enum(zio.io_stage, "ZIO_STAGE_"),
-        "waiter": lambda zio: Zio.__pp_fmt_addr_null(zio.io_waiter),
-        "delta": __pp_fmt_delta,
 
         "flags=long": lambda zio: Zio.__pp_fmt_flags(zio.io_flags, Zio._flag_names),
         "flags=short": lambda zio: Zio.__pp_fmt_flags(zio.io_flags, Zio._flag_names_short),
@@ -175,6 +174,14 @@ class Zio(sdb.Locator, sdb.PrettyPrinter):
         "child_type": lambda zio: Zio.__pp_fmt_enum(zio.io_child_type, "ZIO_CHILD_"),
 
         "post": lambda zio: Zio.__pp_fmt_flags(zio.io_post, Zio._post_names),
+
+        "waiter": lambda zio: Zio.__pp_fmt_task(zio.io_waiter),
+        "executor": lambda zio: Zio.__pp_fmt_task(zio.io_executor),
+
+        "ready": lambda zio: Zio.__pp_fmt_symbol(zio.io_ready),
+        "done": lambda zio: Zio.__pp_fmt_symbol(zio.io_done),
+
+        "delta": __pp_fmt_delta,
     }
 
     FIELDS["flags"] = FIELDS["flags=long"]
