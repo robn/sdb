@@ -131,22 +131,22 @@ class Zio(sdb.Locator, sdb.PrettyPrinter):
         return f"{str(int(delta_ms))}ms"
 
     _flag_names = [
-        "DONT_AGGREGATE",  "IO_REPAIR",       "SELF_HEAL",      "RESILVER",
-        "SCRUB",           "SCAN_THREAD",     "PHYSICAL",       "CANFAIL",
-        "SPECULATIVE",     "CONFIG_WRITER",   "DONT_RETRY",     "[UNKNOWN 11]",
-        "NODATA",          "INDUCE_DAMAGE",   "IO_ALLOCATING",  "IO_RETRY",
-        "PROBE",           "TRYHARD",         "OPTIONAL",       "DIO_READ",
-        "DONT_QUEUE",      "DONT_PROPAGATE",  "IO_BYPASS",      "IO_REWRITE",
-        "RAW_COMPRESS",    "RAW_ENCRYPT",     "GANG_CHILD",     "DDT_CHILD",
-        "GODFATHER",       "NOPWRITE",        "REEXECUTED",     "DELEGATED",
-        "DIO_CHKSUM_ERR",
+        "DONT_AGGREGATE",  "IO_REPAIR",       "SELF_HEAL",        "RESILVER",
+        "SCRUB",           "SCAN_THREAD",     "PHYSICAL",         "CANFAIL",
+        "SPECULATIVE",     "CONFIG_WRITER",   "DONT_RETRY",       "[UNUSED 11]",
+        "NODATA",          "INDUCE_DAMAGE",   "ALLOC_THROTTLED",  "IO_RETRY",
+        "PROBE",           "TRYHARD",         "OPTIONAL",         "DIO_READ",
+        "DONT_QUEUE",      "DONT_PROPAGATE",  "IO_BYPASS",        "IO_REWRITE",
+        "RAW_COMPRESS",    "RAW_ENCRYPT",     "GANG_CHILD",       "DDT_CHILD",
+        "GODFATHER",       "NOPWRITE",        "REEXECUTED",       "DELEGATED",
+        "PREALLOCATED",    "GROUP_LEADER",
     ]
     _flag_names_short = [
         "DA", "RP", "SH", "RS", "SC", "ST", "PH", "CF",
-        "SP", "CW", "DR", "??", "ND", "ID", "AL", "RE",
+        "SP", "CW", "DR", "??", "ND", "ID", "AT", "RE",
         "PR", "TH", "OP", "RD", "DQ", "DP", "BY", "RW",
         "CM", "EN", "GG", "DD", "GF", "NP", "EX", "DG",
-        "DC",
+        "PA", "GL",
     ]
 
     _post_names = [ "REEXECUTE", "SUSPEND", "DIO_CHKSUM_ERR" ]
