@@ -99,6 +99,17 @@ class Zio(sdb.Locator, sdb.PrettyPrinter):
             return "-"
         return hex(obj.value_())
 
+    def __pp_fmt_symbol(obj):
+        if sdb.is_null(obj):
+            return "-"
+        return obj.format_(symbolize=True, type_name=False).split('+', 1)[0]
+
+    def __pp_fmt_task(obj):
+        if sdb.is_null(obj):
+            return "-"
+        task = drgn.cast("struct task_struct *", obj)
+        return f"{task.comm.string_().decode()}:{task.pid.value_()} {hex(obj.value_())}"
+
     def __pp_fmt_enum(obj, prefix):
         return removeprefix(obj.format_(type_name=False), prefix)
 
